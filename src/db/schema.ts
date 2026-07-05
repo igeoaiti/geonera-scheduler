@@ -8,20 +8,244 @@ export const jobStatusEnum: PgEnum<["pending", "running", "completed", "failed"]
 
 // Column configuration interface for the job table
 export type JobsColumns = {
-  id: PgColumn<{ name: "id"; tableName: "jobs"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  name: PgColumn<{ name: "name"; tableName: "jobs"; dataType: "string"; columnType: "PgText"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  triggerMethod: PgColumn<{ name: "trigger_method"; tableName: "jobs"; dataType: "string"; columnType: "PgText"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  status: PgColumn<{ name: "status"; tableName: "jobs"; dataType: "string"; columnType: "PgEnum"; data: "pending" | "running" | "completed" | "failed"; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: ["pending", "running", "completed", "failed"]; baseColumn: never; identity: undefined; generated: undefined; }>;
-  payload: PgColumn<{ name: "payload"; tableName: "jobs"; dataType: "json"; columnType: "PgJsonb"; data: { queue?: string; exchange?: string; routingKey?: string; body?: Record<string, unknown> | string; }; driverParam: unknown; notNull: false; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  priority: PgColumn<{ name: "priority"; tableName: "jobs"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  scheduledAt: PgColumn<{ name: "scheduled_at"; tableName: "jobs"; dataType: "date"; columnType: "PgTimestamp"; data: Date; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  startedAt: PgColumn<{ name: "started_at"; tableName: "jobs"; dataType: "date"; columnType: "PgTimestamp"; data: Date; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  finishedAt: PgColumn<{ name: "finished_at"; tableName: "jobs"; dataType: "date"; columnType: "PgTimestamp"; data: Date; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  attempts: PgColumn<{ name: "attempts"; tableName: "jobs"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  maxAttempts: PgColumn<{ name: "max_attempts"; tableName: "jobs"; dataType: "number"; columnType: "PgInteger"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  error: PgColumn<{ name: "error"; tableName: "jobs"; dataType: "string"; columnType: "PgText"; data: string; driverParam: string; notNull: false; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  createdAt: PgColumn<{ name: "created_at"; tableName: "jobs"; dataType: "date"; columnType: "PgTimestamp"; data: Date; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  updatedAt: PgColumn<{ name: "updated_at"; tableName: "jobs"; dataType: "date"; columnType: "PgTimestamp"; data: Date; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
+  id: PgColumn<{
+    name: "id";
+    tableName: "jobs";
+    dataType: "string";
+    columnType: "PgUUID";
+    data: string;
+    driverParam: string;
+    notNull: true;
+    hasDefault: true;
+    isPrimaryKey: true;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  name: PgColumn<{
+    name: "name";
+    tableName: "jobs";
+    dataType: "string";
+    columnType: "PgText";
+    data: string;
+    driverParam: string;
+    notNull: true;
+    hasDefault: false;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  triggerMethod: PgColumn<{
+    name: "trigger_method";
+    tableName: "jobs";
+    dataType: "string";
+    columnType: "PgText";
+    data: string;
+    driverParam: string;
+    notNull: true;
+    hasDefault: true;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  status: PgColumn<{
+    name: "status";
+    tableName: "jobs";
+    dataType: "string";
+    columnType: "PgEnum";
+    data: "pending" | "running" | "completed" | "failed";
+    driverParam: string;
+    notNull: true;
+    hasDefault: true;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: ["pending", "running", "completed", "failed"];
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  payload: PgColumn<{
+    name: "payload";
+    tableName: "jobs";
+    dataType: "json";
+    columnType: "PgJsonb";
+    data: { queue?: string; exchange?: string; routingKey?: string; body?: Record<string, unknown> | string };
+    driverParam: unknown;
+    notNull: false;
+    hasDefault: false;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  priority: PgColumn<{
+    name: "priority";
+    tableName: "jobs";
+    dataType: "number";
+    columnType: "PgInteger";
+    data: number;
+    driverParam: number;
+    notNull: true;
+    hasDefault: true;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  scheduledAt: PgColumn<{
+    name: "scheduled_at";
+    tableName: "jobs";
+    dataType: "date";
+    columnType: "PgTimestamp";
+    data: Date;
+    driverParam: string;
+    notNull: true;
+    hasDefault: true;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  startedAt: PgColumn<{
+    name: "started_at";
+    tableName: "jobs";
+    dataType: "date";
+    columnType: "PgTimestamp";
+    data: Date;
+    driverParam: string;
+    notNull: false;
+    hasDefault: false;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  finishedAt: PgColumn<{
+    name: "finished_at";
+    tableName: "jobs";
+    dataType: "date";
+    columnType: "PgTimestamp";
+    data: Date;
+    driverParam: string;
+    notNull: false;
+    hasDefault: false;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  attempts: PgColumn<{
+    name: "attempts";
+    tableName: "jobs";
+    dataType: "number";
+    columnType: "PgInteger";
+    data: number;
+    driverParam: number;
+    notNull: true;
+    hasDefault: true;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  maxAttempts: PgColumn<{
+    name: "max_attempts";
+    tableName: "jobs";
+    dataType: "number";
+    columnType: "PgInteger";
+    data: number;
+    driverParam: number;
+    notNull: true;
+    hasDefault: true;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  error: PgColumn<{
+    name: "error";
+    tableName: "jobs";
+    dataType: "string";
+    columnType: "PgText";
+    data: string;
+    driverParam: string;
+    notNull: false;
+    hasDefault: false;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  createdAt: PgColumn<{
+    name: "created_at";
+    tableName: "jobs";
+    dataType: "date";
+    columnType: "PgTimestamp";
+    data: Date;
+    driverParam: string;
+    notNull: true;
+    hasDefault: true;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  updatedAt: PgColumn<{
+    name: "updated_at";
+    tableName: "jobs";
+    dataType: "date";
+    columnType: "PgTimestamp";
+    data: Date;
+    driverParam: string;
+    notNull: true;
+    hasDefault: true;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
   [key: string]: PgColumn<any, any, any>;
 };
 
@@ -62,7 +286,7 @@ const _jobs: JobsTable = schedulerSchema.table(
     index("jobs_status_scheduled_idx").on(table.status, table.scheduledAt),
     // Speed up worker queries when checking for running instances of cron schedules
     index("jobs_status_name_idx").on(table.status, table.name),
-  ]
+  ],
 ) as unknown as JobsTable;
 
 // Export explicit typed jobs variable
@@ -70,15 +294,159 @@ export const jobs: JobsTable = _jobs;
 
 // Column configuration interface for the cron schedules table
 export type CronSchedulesColumns = {
-  id: PgColumn<{ name: "id"; tableName: "cron_schedules"; dataType: "string"; columnType: "PgUUID"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: true; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  name: PgColumn<{ name: "name"; tableName: "cron_schedules"; dataType: "string"; columnType: "PgText"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  triggerMethod: PgColumn<{ name: "trigger_method"; tableName: "cron_schedules"; dataType: "string"; columnType: "PgText"; data: string; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  cronExpression: PgColumn<{ name: "cron_expression"; tableName: "cron_schedules"; dataType: "string"; columnType: "PgText"; data: string; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  payload: PgColumn<{ name: "payload"; tableName: "cron_schedules"; dataType: "json"; columnType: "PgJsonb"; data: { queue?: string; exchange?: string; routingKey?: string; body?: Record<string, unknown> | string; }; driverParam: unknown; notNull: false; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  isActive: PgColumn<{ name: "is_active"; tableName: "cron_schedules"; dataType: "boolean"; columnType: "PgBoolean"; data: boolean; driverParam: boolean; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  nextRunAt: PgColumn<{ name: "next_run_at"; tableName: "cron_schedules"; dataType: "date"; columnType: "PgTimestamp"; data: Date; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  createdAt: PgColumn<{ name: "created_at"; tableName: "cron_schedules"; dataType: "date"; columnType: "PgTimestamp"; data: Date; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
-  updatedAt: PgColumn<{ name: "updated_at"; tableName: "cron_schedules"; dataType: "date"; columnType: "PgTimestamp"; data: Date; driverParam: string; notNull: true; hasDefault: true; isPrimaryKey: false; isAutoincrement: false; hasRuntimeDefault: false; enumValues: undefined; baseColumn: never; identity: undefined; generated: undefined; }>;
+  id: PgColumn<{
+    name: "id";
+    tableName: "cron_schedules";
+    dataType: "string";
+    columnType: "PgUUID";
+    data: string;
+    driverParam: string;
+    notNull: true;
+    hasDefault: true;
+    isPrimaryKey: true;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  name: PgColumn<{
+    name: "name";
+    tableName: "cron_schedules";
+    dataType: "string";
+    columnType: "PgText";
+    data: string;
+    driverParam: string;
+    notNull: true;
+    hasDefault: false;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  triggerMethod: PgColumn<{
+    name: "trigger_method";
+    tableName: "cron_schedules";
+    dataType: "string";
+    columnType: "PgText";
+    data: string;
+    driverParam: string;
+    notNull: true;
+    hasDefault: true;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  cronExpression: PgColumn<{
+    name: "cron_expression";
+    tableName: "cron_schedules";
+    dataType: "string";
+    columnType: "PgText";
+    data: string;
+    driverParam: string;
+    notNull: true;
+    hasDefault: false;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  payload: PgColumn<{
+    name: "payload";
+    tableName: "cron_schedules";
+    dataType: "json";
+    columnType: "PgJsonb";
+    data: { queue?: string; exchange?: string; routingKey?: string; body?: Record<string, unknown> | string };
+    driverParam: unknown;
+    notNull: false;
+    hasDefault: false;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  isActive: PgColumn<{
+    name: "is_active";
+    tableName: "cron_schedules";
+    dataType: "boolean";
+    columnType: "PgBoolean";
+    data: boolean;
+    driverParam: boolean;
+    notNull: true;
+    hasDefault: true;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  nextRunAt: PgColumn<{
+    name: "next_run_at";
+    tableName: "cron_schedules";
+    dataType: "date";
+    columnType: "PgTimestamp";
+    data: Date;
+    driverParam: string;
+    notNull: true;
+    hasDefault: false;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  createdAt: PgColumn<{
+    name: "created_at";
+    tableName: "cron_schedules";
+    dataType: "date";
+    columnType: "PgTimestamp";
+    data: Date;
+    driverParam: string;
+    notNull: true;
+    hasDefault: true;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
+  updatedAt: PgColumn<{
+    name: "updated_at";
+    tableName: "cron_schedules";
+    dataType: "date";
+    columnType: "PgTimestamp";
+    data: Date;
+    driverParam: string;
+    notNull: true;
+    hasDefault: true;
+    isPrimaryKey: false;
+    isAutoincrement: false;
+    hasRuntimeDefault: false;
+    enumValues: undefined;
+    baseColumn: never;
+    identity: undefined;
+    generated: undefined;
+  }>;
   [key: string]: PgColumn<any, any, any>;
 };
 
@@ -112,7 +480,7 @@ const _cronSchedules: CronSchedulesTable = schedulerSchema.table(
   (table: Record<string, PgColumn>): IndexBuilder[] => [
     // Speed up cron scheduler polls
     index("cron_is_active_next_run_idx").on(table.isActive, table.nextRunAt),
-  ]
+  ],
 ) as unknown as CronSchedulesTable;
 
 // Export explicit typed cronSchedules variable

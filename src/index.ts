@@ -12,6 +12,35 @@ import { logger } from "./logger";
 import { DatabaseError } from "./errors";
 import type { Server } from "bun";
 
+export interface JobCountByStatus {
+  status: "pending" | "running" | "completed" | "failed";
+  count: number;
+}
+
+export interface CronScheduleApiResponse {
+  id: string;
+  name: string;
+  triggerMethod: "RABBITMQ" | "INTERNAL";
+  cronExpression: string;
+  nextRunAt: Date;
+  isActive: boolean;
+}
+
+export interface ManualQueueJobRequest {
+  name?: string;
+  triggerMethod?: string;
+  payload?: unknown;
+  priority?: number;
+  scheduledAt?: string;
+}
+
+export interface CronSchedulePayloadInfo {
+  queue?: string;
+  exchange?: string;
+  routingKey?: string;
+  body?: Record<string, unknown>;
+}
+
 const PORT: number = parseInt(process.env.PORT || "3000", 10);
 const WORKER_POLL_INTERVAL: number = parseInt(process.env.WORKER_POLL_INTERVAL_MS || "1000", 10);
 const CRON_POLL_INTERVAL: number = parseInt(process.env.CRON_POLL_INTERVAL_MS || "5000", 10);
@@ -25,26 +54,26 @@ async function bootstrap(): Promise<void> {
     await migrate(db, { migrationsFolder: "./drizzle" });
     logger.info("[Bootstrap] Database migrations applied successfully.");
   } catch (err: unknown) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
+    const errorMsg: string = err instanceof Error ? err.message : String(err);
     logger.error(err, `[Bootstrap] Database migration failed: ${errorMsg}`);
     throw err;
   }
 
   logger.info("[Bootstrap] Initializing database & seeding Geonera cron schedules...");
-  
+
   // Seed default cron configurations (creates schedules if they don't exist)
   await seedSchedules();
-  
+
   // Start the worker loop that polls and executes pending jobs
   await startWorker(WORKER_POLL_INTERVAL);
-  
+
   // Start the cron ticket timer to regularly spawn jobs
   const cronTimer: Timer = setInterval(async (): Promise<void> => {
     await tickCronScheduler();
   }, CRON_POLL_INTERVAL);
-  
+
   logger.info("[Bootstrap] Scheduler background workers started.");
-  
+
   // Clean shutdown handlers
   const shutdown: () => void = () => {
     logger.info("[Bootstrap] Intercepted shutdown signal. Stopping services...");
@@ -52,7 +81,7 @@ async function bootstrap(): Promise<void> {
     stopWorker();
     process.exit(0);
   };
-  
+
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
 }
@@ -70,7 +99,7 @@ app.get("/", (c: Context): Response => {
   return c.json({
     name: "geonera-scheduler",
     version: "1.0.0",
-    status: "running"
+    status: "running",
   });
 });
 
@@ -97,14 +126,14 @@ app.get("/health", async (c: Context): Promise<Response> => {
       },
       timestamp: new Date().toISOString(),
     },
-    overallStatus as 200 | 500
+    overallStatus as 200 | 500,
   );
 });
 
 // Overview metrics & schedules status
 app.get("/api/jobs", async (c: Context): Promise<Response> => {
   // Aggregate job counts by status
-  const counts: Array<{ status: "pending" | "running" | "completed" | "failed"; count: number }> = await db
+  const counts: Array<JobCountByStatus> = await db
     .select({
       status: jobs.status,
       count: sql<number>`count(*)::int`,
@@ -114,34 +143,22 @@ app.get("/api/jobs", async (c: Context): Promise<Response> => {
     .execute();
 
   const stats: Record<string, number> = counts.reduce(
-    (acc: Record<string, number>, curr: { status: "pending" | "running" | "completed" | "failed"; count: number }): Record<string, number> => {
+    (acc: Record<string, number>, curr: JobCountByStatus): Record<string, number> => {
       acc[curr.status] = curr.count;
       return acc;
     },
-    { pending: 0, running: 0, completed: 0, failed: 0 } as Record<string, number>
+    { pending: 0, running: 0, completed: 0, failed: 0 } as Record<string, number>,
   );
 
   // Fetch 10 most recent jobs
-  const recentJobs: Array<typeof jobs.$inferSelect> = await db
-    .select()
-    .from(jobs)
-    .orderBy(desc(jobs.createdAt))
-    .limit(10)
-    .execute();
+  const recentJobs: Array<typeof jobs.$inferSelect> = await db.select().from(jobs).orderBy(desc(jobs.createdAt)).limit(10).execute();
 
   // Fetch all active schedules
   const schedules: Array<typeof cronSchedules.$inferSelect> = await db.select().from(cronSchedules).execute();
 
   return c.json({
     stats,
-    schedules: schedules.map((s: typeof cronSchedules.$inferSelect): {
-      id: string;
-      name: string;
-      triggerMethod: "RABBITMQ" | "INTERNAL";
-      cronExpression: string;
-      nextRunAt: Date;
-      isActive: boolean;
-    } => ({
+    schedules: schedules.map((s: typeof cronSchedules.$inferSelect): CronScheduleApiResponse => ({
       id: s.id,
       name: s.name,
       triggerMethod: s.triggerMethod as "RABBITMQ" | "INTERNAL",
@@ -155,23 +172,9 @@ app.get("/api/jobs", async (c: Context): Promise<Response> => {
 
 // Queue a manual ad-hoc job
 app.post("/api/jobs", async (c: Context): Promise<Response> => {
-  const body: {
-    name?: string;
-    triggerMethod?: string;
-    payload?: unknown;
-    priority?: number;
-    scheduledAt?: string;
-  } | null = (await c.req.json().catch((): null => null)) as {
-    name?: string;
-    triggerMethod?: string;
-    payload?: unknown;
-    priority?: number;
-    scheduledAt?: string;
-  } | null;
+  const body: ManualQueueJobRequest | null = (await c.req.json().catch((): null => null)) as ManualQueueJobRequest | null;
 
-  if (!body || !body.name) {
-    return c.json({ error: "Missing required field: 'name'" }, 400);
-  }
+  if (!body || !body.name) return c.json({ error: "Missing required field: 'name'" }, 400);
 
   const inserted: Array<typeof jobs.$inferSelect> = await db
     .insert(jobs)
@@ -192,7 +195,7 @@ app.post("/api/jobs", async (c: Context): Promise<Response> => {
       message: "Job enqueued successfully",
       job: inserted[0],
     },
-    201
+    201,
   );
 });
 
@@ -204,29 +207,15 @@ app.post("/api/cron-schedules/trigger", async (c: Context): Promise<Response> =>
     name?: string;
   } | null;
 
-  if (!body || !body.name) {
-    return c.json({ error: "Missing required field: 'name'" }, 400);
-  }
+  if (!body || !body.name) return c.json({ error: "Missing required field: 'name'" }, 400);
 
   const schedule: typeof cronSchedules.$inferSelect | undefined = await db.query.cronSchedules.findFirst({
     where: eq(cronSchedules.name, body.name),
   });
 
-  if (!schedule) {
-    return c.json({ error: `Cron schedule "${body.name}" not found` }, 404);
-  }
+  if (!schedule) return c.json({ error: `Cron schedule "${body.name}" not found` }, 404);
 
-  const schedPayload: {
-    queue?: string;
-    exchange?: string;
-    routingKey?: string;
-    body?: Record<string, unknown>;
-  } | null = schedule.payload as {
-    queue?: string;
-    exchange?: string;
-    routingKey?: string;
-    body?: Record<string, unknown>;
-  } | null;
+  const schedPayload: CronSchedulePayloadInfo | null = schedule.payload as CronSchedulePayloadInfo | null;
 
   const existingBody: Record<string, unknown> = typeof schedPayload?.body === "object" ? schedPayload.body : {};
 
@@ -242,7 +231,7 @@ app.post("/api/cron-schedules/trigger", async (c: Context): Promise<Response> =>
           ...existingBody,
           triggeredManually: true,
           triggeredAt: new Date().toISOString(),
-        }
+        },
       },
       scheduledAt: new Date(),
       status: "pending",
@@ -257,7 +246,7 @@ app.post("/api/cron-schedules/trigger", async (c: Context): Promise<Response> =>
       message: `Cron schedule "${schedule.name}" triggered immediately.`,
       job: triggeredJob[0],
     },
-    201
+    201,
   );
 });
 
@@ -278,17 +267,17 @@ const openApiSpec: Record<string, unknown> = {
         description: "Returns connection status of PostgreSQL database and RabbitMQ broker.",
         responses: {
           200: { description: "Overall service is healthy." },
-          500: { description: "Service is degraded/unhealthy." }
-        }
-      }
+          500: { description: "Service is degraded/unhealthy." },
+        },
+      },
     },
     "/api/jobs": {
       get: {
         summary: "Get current job statistics and logs",
         description: "Returns statistics of jobs by status, list of all registered cron schedules, and the 10 most recent job logs.",
         responses: {
-          200: { description: "Stats and logs fetched successfully." }
-        }
+          200: { description: "Stats and logs fetched successfully." },
+        },
       },
       post: {
         summary: "Queue a manual one-off job",
@@ -304,18 +293,18 @@ const openApiSpec: Record<string, unknown> = {
                   triggerMethod: { type: "string", enum: ["RABBITMQ", "INTERNAL"], default: "RABBITMQ", description: "How to trigger the job." },
                   payload: { type: "object", description: "Payload settings (RabbitMQ queue, body, etc)." },
                   priority: { type: "integer", default: 0, description: "Job priority. Higher runs first." },
-                  scheduledAt: { type: "string", format: "date-time", description: "Delay job execution until this ISO timestamp." }
+                  scheduledAt: { type: "string", format: "date-time", description: "Delay job execution until this ISO timestamp." },
                 },
-                required: ["name"]
-              }
-            }
-          }
+                required: ["name"],
+              },
+            },
+          },
         },
         responses: {
           201: { description: "Job queued successfully." },
-          400: { description: "Invalid request payload." }
-        }
-      }
+          400: { description: "Invalid request payload." },
+        },
+      },
     },
     "/api/cron-schedules/trigger": {
       post: {
@@ -328,21 +317,21 @@ const openApiSpec: Record<string, unknown> = {
               schema: {
                 type: "object",
                 properties: {
-                  name: { type: "string", description: "Name of the registered cron schedule (e.g. 'maintenance')." }
+                  name: { type: "string", description: "Name of the registered cron schedule (e.g. 'maintenance')." },
                 },
-                required: ["name"]
-              }
-            }
-          }
+                required: ["name"],
+              },
+            },
+          },
         },
         responses: {
           201: { description: "Cron schedule triggered immediately." },
           400: { description: "Invalid request payload." },
-          404: { description: "Cron schedule not found." }
-        }
-      }
-    }
-  }
+          404: { description: "Cron schedule not found." },
+        },
+      },
+    },
+  },
 };
 
 // Serve OpenAPI JSON doc
@@ -356,7 +345,7 @@ app.get(
       url: "/doc",
     },
     theme: "solarized",
-  })
+  }),
 );
 
 // Start Server using Hono app handler

@@ -1,7 +1,7 @@
 import pino from "pino";
 import pretty from "pino-pretty";
 
-const isProduction = process.env["NODE_ENV"] === "production";
+const isProduction: boolean = process.env["NODE_ENV"] === "production";
 
 // Configure pino logger
 export const logger: pino.Logger = isProduction
@@ -22,5 +22,5 @@ export const logger: pino.Logger = isProduction
         colorize: true,
         translateTime: "SYS:yyyy-mm-dd HH:MM:ss.l",
         ignore: "pid,hostname",
-      })
+      }),
     );

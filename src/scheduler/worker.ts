@@ -25,12 +25,7 @@ export async function pollAndRunJob(): Promise<boolean> {
       const claimed: (typeof jobs.$inferSelect)[] = await tx
         .select()
         .from(jobs)
-        .where(
-          and(
-            eq(jobs.status, "pending"),
-            lte(jobs.scheduledAt, new Date())
-          )
-        )
+        .where(and(eq(jobs.status, "pending"), lte(jobs.scheduledAt, new Date())))
         .orderBy(desc(jobs.priority), asc(jobs.scheduledAt))
         .limit(1)
         .for("update", { skipLocked: true })
@@ -59,10 +54,7 @@ export async function pollAndRunJob(): Promise<boolean> {
     return false;
   }
 
-  // If no jobs are pending
-  if (!jobToRun) {
-    return false;
-  }
+  if (!jobToRun) return false;
 
   // Create child logger with traceId correlation
   const jobLogger: pino.Logger = logger.child({ traceId: jobToRun.id, jobName: jobToRun.name });
@@ -71,12 +63,15 @@ export async function pollAndRunJob(): Promise<boolean> {
 
   // Phase 2: Execute outside database lock transaction to keep transactions short
   try {
-    await executeJob({
-      id: jobToRun.id,
-      name: jobToRun.name,
-      triggerMethod: jobToRun.triggerMethod,
-      payload: jobToRun.payload,
-    }, jobLogger);
+    await executeJob(
+      {
+        id: jobToRun.id,
+        name: jobToRun.name,
+        triggerMethod: jobToRun.triggerMethod,
+        payload: jobToRun.payload,
+      },
+      jobLogger,
+    );
 
     // Mark as completed
     await db
@@ -92,9 +87,10 @@ export async function pollAndRunJob(): Promise<boolean> {
   } catch (error: unknown) {
     const errorMsg: string = error instanceof Error ? error.message : String(error);
     const errorStack: string | undefined = error instanceof Error ? error.stack : undefined;
-    const jobError: SchedulerError = error instanceof SchedulerError
-      ? error
-      : new JobExecutionError(`Job execution failed: ${errorMsg}`, { jobId: jobToRun.id, jobName: jobToRun.name, originalStack: errorStack });
+    const jobError: SchedulerError =
+      error instanceof SchedulerError
+        ? error
+        : new JobExecutionError(`Job execution failed: ${errorMsg}`, { jobId: jobToRun.id, jobName: jobToRun.name, originalStack: errorStack });
 
     jobLogger.error(jobError, "[Worker] Job failed during execution");
 
@@ -108,18 +104,13 @@ export async function pollAndRunJob(): Promise<boolean> {
         status: isRetryable ? "pending" : "failed",
         error: jobError.stack || jobError.message,
         finishedAt: isRetryable ? null : new Date(),
-        scheduledAt: isRetryable 
-          ? new Date(Date.now() + nextRetryDelay)
-          : jobToRun.scheduledAt,
+        scheduledAt: isRetryable ? new Date(Date.now() + nextRetryDelay) : jobToRun.scheduledAt,
         updatedAt: new Date(),
       })
       .where(eq(jobs.id, jobToRun.id));
 
-    if (isRetryable) {
-      jobLogger.info({ retryDelayMs: nextRetryDelay }, "[Worker] Job rescheduled for retry");
-    } else {
-      jobLogger.error({ maxAttempts: jobToRun.maxAttempts }, "[Worker] Job failed permanently");
-    }
+    if (isRetryable) jobLogger.info({ retryDelayMs: nextRetryDelay }, "[Worker] Job rescheduled for retry");
+    else jobLogger.error({ maxAttempts: jobToRun.maxAttempts }, "[Worker] Job failed permanently");
   }
 
   return true;

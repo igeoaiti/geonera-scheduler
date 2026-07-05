@@ -3,9 +3,18 @@ import { logger } from "./logger";
 import { RabbitMQError } from "./errors";
 import pino from "pino";
 
+export interface PublishMessagePayload {
+  queue?: string;
+  exchange?: string;
+  routingKey?: string;
+  body?: unknown;
+  traceId?: string;
+}
+
 let connection: amqp.ChannelModel | null = null;
 let channel: amqp.Channel | null = null;
 let isConnecting: boolean = false;
+const assertedQueues: Set<string> = new Set<string>();
 
 const RABBITMQ_URL: string = process.env.RABBITMQ_URL || "amqp://guest:guest@localhost:5672";
 
@@ -17,7 +26,9 @@ export async function getChannel(): Promise<amqp.Channel> {
   if (channel) return channel;
 
   if (isConnecting) {
-    await new Promise<void>((resolve: (value: void | PromiseLike<void>) => void): void => { setTimeout(resolve, 500); });
+    await new Promise<void>((resolve: (value: void | PromiseLike<void>) => void): void => {
+      setTimeout(resolve, 500);
+    });
     return getChannel();
   }
 
@@ -31,14 +42,16 @@ export async function getChannel(): Promise<amqp.Channel> {
         logger.error(err, "[RabbitMQ] Connection error");
         connection = null;
         channel = null;
+        assertedQueues.clear();
       });
 
       connection.on("close", (): void => {
         logger.warn("[RabbitMQ] Connection closed. Reconnection will happen on the next publish.");
         connection = null;
         channel = null;
+        assertedQueues.clear();
       });
-      
+
       logger.info("[RabbitMQ] Connected successfully.");
     }
 
@@ -48,10 +61,12 @@ export async function getChannel(): Promise<amqp.Channel> {
       channel.on("error", (err: Error): void => {
         logger.error(err, "[RabbitMQ] Channel error");
         channel = null;
+        assertedQueues.clear();
       });
       channel.on("close", (): void => {
         logger.warn("[RabbitMQ] Channel closed.");
         channel = null;
+        assertedQueues.clear();
       });
     }
   } catch (error: unknown) {
@@ -66,42 +81,34 @@ export async function getChannel(): Promise<amqp.Channel> {
   }
 
   // Validate outside the try-catch block to prevent catching these validation errors locally
-  if (!connection) {
-    throw new RabbitMQError("Connection failed to establish.", { url: RABBITMQ_URL });
-  }
-  if (!channel) {
-    throw new RabbitMQError("Channel failed to establish.", { url: RABBITMQ_URL });
-  }
+  if (!connection) throw new RabbitMQError("Connection failed to establish.", { url: RABBITMQ_URL });
+  if (!channel) throw new RabbitMQError("Channel failed to establish.", { url: RABBITMQ_URL });
 
   return channel;
 }
 
-/**
- * Publish a message to a RabbitMQ queue or exchange.
- */
-export async function publishMessage(
-  payload: {
-    queue?: string;
-    exchange?: string;
-    routingKey?: string;
-    body?: unknown;
-    traceId?: string;
-  },
-  customLogger?: pino.Logger
-): Promise<void> {
+export async function publishMessage(payload: PublishMessagePayload, customLogger?: pino.Logger): Promise<void> {
   const ch: amqp.Channel = await getChannel();
-  
+
   const exchange: string = payload.exchange || "";
   const queue: string = payload.queue || "";
-  
-  // If queue is provided, assert it to ensure it exists
+  const log: pino.Logger = customLogger || logger;
+
   if (queue) {
-    await ch.assertQueue(queue, { durable: true });
+    if (!assertedQueues.has(queue)) {
+      await ch.assertQueue(queue, { durable: true });
+      assertedQueues.add(queue);
+    }
+
+    const queueState: amqp.Replies.AssertQueue = await ch.checkQueue(queue);
+    if (queueState.messageCount > 0) {
+      log.info({ queue, messageCount: queueState.messageCount }, "[RabbitMQ] Skip publishing: queue already has pending messages.");
+      return;
+    }
   }
 
   // Routing key defaults to queue name if exchange is empty, otherwise empty string/routing key
   const routingKey: string = payload.routingKey || queue || "";
-  
   const bodyContent: unknown = payload.body || {};
   const messageBuffer: Buffer = Buffer.from(typeof bodyContent === "string" ? bodyContent : JSON.stringify(bodyContent));
 
@@ -111,11 +118,8 @@ export async function publishMessage(
     headers: payload.traceId ? { "x-trace-id": payload.traceId } : undefined,
   });
 
-  if (!published) {
-    throw new RabbitMQError("Message publish buffer is full, could not publish.", { queue, exchange, routingKey, traceId: payload.traceId });
-  }
+  if (!published) throw new RabbitMQError("Message publish buffer is full, could not publish.", { queue, exchange, routingKey, traceId: payload.traceId });
 
-  const log: pino.Logger = customLogger || logger;
   log.info({ traceId: payload.traceId, queue, exchange, routingKey }, "[RabbitMQ] Published message successfully");
 }
 

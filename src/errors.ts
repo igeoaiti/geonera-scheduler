@@ -13,9 +13,7 @@ export class SchedulerError extends Error {
     this.timestamp = new Date();
 
     // Capture clean stack trace (supported in Bun/V8)
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
+    if (Error.captureStackTrace) Error.captureStackTrace(this, this.constructor);
   }
 }
 
