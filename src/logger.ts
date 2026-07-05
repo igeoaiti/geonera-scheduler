@@ -1,7 +1,7 @@
 import pino from "pino";
 import pretty from "pino-pretty";
 
-const isProduction = process.env.NODE_ENV === "production";
+const isProduction = process.env["NODE_ENV"] === "production";
 
 // Configure pino logger
 export const logger: pino.Logger = isProduction

@@ -2,6 +2,7 @@
 FROM --platform=$BUILDPLATFORM oven/bun:1.1.20-alpine AS builder
 
 ARG TARGETARCH
+ENV NODE_ENV=production
 WORKDIR /app
 
 # Copy package files
