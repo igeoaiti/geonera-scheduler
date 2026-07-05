@@ -24,15 +24,47 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Get version from package.json
+        id: package-version
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/arm64
           push: true
-          tags: sansalfian/geonera-scheduler:latest
+          tags: |
+            sansalfian/geonera-scheduler:${{ steps.package-version.outputs.version }}
+            sansalfian/geonera-scheduler:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Update Version in geonera-deploy
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        run: |
+          if [ -z "$API_TOKEN_GITHUB" ]; then
+            echo "API_TOKEN_GITHUB secret is not set. Skipping update of geonera-deploy repository."
+            exit 0
+          fi
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Clone geonera-deploy repository
+          git clone "https://x-access-token:${API_TOKEN_GITHUB}@github.com/igeoaiti/geonera-deploy.git" geonera-deploy
+          cd geonera-deploy
+          
+          # Update version in .env and .env.example
+          sed -i "s/SCHEDULER_VERSION=.*/SCHEDULER_VERSION=${{ steps.package-version.outputs.version }}/g" .env
+          sed -i "s/SCHEDULER_VERSION=.*/SCHEDULER_VERSION=${{ steps.package-version.outputs.version }}/g" .env.example
+          
+          # Commit and Push
+          git add .env .env.example
+          git commit -m "chore: bump scheduler version to ${{ steps.package-version.outputs.version }}" || echo "No changes to commit"
+          git push origin main
 
       - name: Trigger Portainer Redeploy Webhook
         run: |
