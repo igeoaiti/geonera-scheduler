@@ -65,6 +65,15 @@ const app: Hono = new Hono();
 // Enable CORS for all routes
 app.use("*", cors());
 
+// Welcome / Root Endpoint
+app.get("/", (c: Context): Response => {
+  return c.json({
+    name: "geonera-scheduler",
+    version: "1.0.0",
+    status: "running"
+  });
+});
+
 // Health Check Endpoint
 app.get("/health", async (c: Context): Promise<Response> => {
   let dbOk: boolean = false;
