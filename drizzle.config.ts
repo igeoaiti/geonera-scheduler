@@ -5,7 +5,7 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "postgresql",
   migrations: {
-    schema: "drizzle",
+    schema: "migration",
     table: "__geonera_scheduler_migrations",
   },
   dbCredentials: {

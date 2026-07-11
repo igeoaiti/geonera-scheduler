@@ -8,7 +8,7 @@ test("Drizzle Configuration Properties", (): void => {
   expect(drizzleConfig.dialect).toBe("postgresql");
   expect(drizzleConfig.out).toBe("./drizzle");
   expect(drizzleConfig.migrations).toEqual({
-    schema: "drizzle",
+    schema: "migration",
     table: "__geonera_scheduler_migrations",
   });
 });

@@ -53,7 +53,7 @@ async function bootstrap(): Promise<void> {
   try {
     await migrate(db, {
       migrationsFolder: "./drizzle",
-      migrationsSchema: "drizzle",
+      migrationsSchema: "migration",
       migrationsTable: "__geonera_scheduler_migrations",
     });
     logger.info("[Bootstrap] Database migrations applied successfully.");
