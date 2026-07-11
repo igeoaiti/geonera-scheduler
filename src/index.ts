@@ -51,7 +51,11 @@ const CRON_POLL_INTERVAL: number = parseInt(process.env.CRON_POLL_INTERVAL_MS ||
 async function bootstrap(): Promise<void> {
   logger.info("[Bootstrap] Running database migrations...");
   try {
-    await migrate(db, { migrationsFolder: "./drizzle" });
+    await migrate(db, {
+      migrationsFolder: "./drizzle",
+      migrationsSchema: "drizzle",
+      migrationsTable: "__geonera_scheduler_migrations",
+    });
     logger.info("[Bootstrap] Database migrations applied successfully.");
   } catch (err: unknown) {
     const errorMsg: string = err instanceof Error ? err.message : String(err);

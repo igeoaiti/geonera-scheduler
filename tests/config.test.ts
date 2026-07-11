@@ -7,6 +7,10 @@ test("Drizzle Configuration Properties", (): void => {
   expect(drizzleConfig.schema).toBe("./src/db/schema.ts");
   expect(drizzleConfig.dialect).toBe("postgresql");
   expect(drizzleConfig.out).toBe("./drizzle");
+  expect(drizzleConfig.migrations).toEqual({
+    schema: "drizzle",
+    table: "__geonera_scheduler_migrations",
+  });
 });
 
 test("Database Client Type Exports", (): void => {
