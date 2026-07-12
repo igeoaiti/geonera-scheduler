@@ -15,6 +15,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Checkout geonera-deploy (for Dockerfile)
+        uses: actions/checkout@v4
+        with:
+          repository: igeoaiti/geonera-deploy
+          path: geonera-deploy
+
       - name: Create GitHub Deployment
         uses: chrnorm/deployment-action@v2
         id: deployment
@@ -47,6 +53,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./geonera-deploy/docker/scheduler.Dockerfile
           platforms: linux/arm64
           push: true
           tags: |
@@ -67,8 +74,8 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
           # Clone geonera-deploy repository
-          git clone "https://x-access-token:${API_TOKEN_GITHUB}@github.com/igeoaiti/geonera-deploy.git" geonera-deploy
-          cd geonera-deploy
+          git clone "https://x-access-token:${API_TOKEN_GITHUB}@github.com/igeoaiti/geonera-deploy.git" geonera-deploy-repo
+          cd geonera-deploy-repo
           
           # Update version in .env and .env.example
           sed -i "s/SCHEDULER_VERSION=.*/SCHEDULER_VERSION=${{ steps.package-version.outputs.version }}/g" .env
